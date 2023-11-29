@@ -3,6 +3,7 @@
 DerivedDataCache/
 Saved/
 Intermediate/
+ Content/__ExternalObjects__/
 *.opensdf
 *.sdf
 *.suo
