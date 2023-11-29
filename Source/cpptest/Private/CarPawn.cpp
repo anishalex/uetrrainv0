@@ -22,7 +22,6 @@ ACarPawn::ACarPawn()
 	Addr->SetIp(IP.Value);
 	Addr->SetPort(Port);
 
-
 	bool connected = Socket->Connect(*Addr);
 	if (!connected)
 	{
@@ -36,16 +35,9 @@ ACarPawn::ACarPawn()
 		DataToSend.Append((uint8*)&baseVal , sizeof(baseVal));
 
 		int32 BytesSent = 0;
-		bool successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
-					
+		bool successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);		
 	}
-	
-
 }
-
-
-
-
 
 // Called when the game starts or when spawned
 void ACarPawn::BeginPlay()
@@ -53,7 +45,6 @@ void ACarPawn::BeginPlay()
 	Super::BeginPlay();
 	//GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn:FrameSender, 0.5f, false);
 	GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::FrameSender, 1.0f, false);
-	
 }
 
 void ACarPawn::FrameSender() {
@@ -65,22 +56,18 @@ void ACarPawn::FrameSender() {
 		int32 BytesSent = 0;
 		bool successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
 }
-
 // Called every frame
 void ACarPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
 
 void ACarPawn::sendSocketMessage() {
-
 }
 
 // Called to bind functionality to input
 void ACarPawn::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 }
 
