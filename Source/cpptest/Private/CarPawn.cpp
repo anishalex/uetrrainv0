@@ -29,8 +29,8 @@ ACarPawn::ACarPawn()
 	}
 	else {
 		//GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::sendSocketMessage, 1.0f, false);
-		uint8 baseVal = 65;
-
+		UE_LOG(LogVehicleData, Warning, TEXT("Vehicle Init"));
+		uint8 baseVal = 65;		
 		TArray<uint8> DataToSend;
 		DataToSend.Append((uint8*)&baseVal , sizeof(baseVal));
 
@@ -39,22 +39,77 @@ ACarPawn::ACarPawn()
 	}
 }
 
+
+ACarPawn::~ACarPawn()
+{
+	// Ensure the socket exists
+	if (Socket)
+	{
+		// Close the socket
+		Socket->Close();
+
+		// Free the memory associated with the socket
+		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+
+		// Nullify the pointer for safety
+		Socket = nullptr;
+	}
+}
+
+bool ACarPawn::SafeSocketSend() {
+	uint8 baseVal = 67;
+	TArray<uint8> DataToSend;
+	int32 BytesSent = 0;
+	bool successful;
+
+	if (Socket)
+	{
+		ESocketConnectionState ConnectionState = Socket->GetConnectionState();
+		switch (ConnectionState)
+		{
+			case SCS_NotConnected:
+				UE_LOG(LogVehicleData, Warning, TEXT("Socket not connected"));
+				return false;
+			case SCS_Connected:
+				DataToSend.Append((uint8*)&baseVal, sizeof(baseVal));
+				successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
+				if (successful) {
+					return true;
+				} else {
+					UE_LOG(LogVehicleData, Warning, TEXT("Error while sending"));
+					return false;
+				}
+			
+			case SCS_ConnectionError:
+				UE_LOG(LogVehicleData, Warning, TEXT("Socket Connection Error"));
+				return false;
+
+			default:
+				UE_LOG(LogVehicleData, Warning, TEXT("Unknown socket state"));
+				return false;
+		}
+	}
+	else {
+		UE_LOG(LogVehicleData, Warning, TEXT("SafeSocketSend couldn't get the socket"));
+		return false;
+	}
+
+
+}
+
 // Called when the game starts or when spawned
 void ACarPawn::BeginPlay()
 {
 	Super::BeginPlay();
 	//GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn:FrameSender, 0.5f, false);
-	GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::FrameSender, 1.0f, false);
+	GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::FrameSender, 1.0f, true);
 }
 
 void ACarPawn::FrameSender() {
-		uint8 baseVal = 67;
+		
+		UE_LOG(LogVehicleData, Log, TEXT("Hello World"));
+		ACarPawn::SafeSocketSend();
 
-		TArray<uint8> DataToSend;
-		DataToSend.Append((uint8*)&baseVal , sizeof(baseVal));
-
-		int32 BytesSent = 0;
-		bool successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
 }
 // Called every frame
 void ACarPawn::Tick(float DeltaTime)

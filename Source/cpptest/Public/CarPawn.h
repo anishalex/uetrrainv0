@@ -20,6 +20,7 @@ public:
 	FTimerHandle TimerHandle;
 	void sendSocketMessage();
 	void FrameSender();
+	bool SafeSocketSend();
 
 
 protected:
