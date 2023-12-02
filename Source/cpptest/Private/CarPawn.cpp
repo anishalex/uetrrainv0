@@ -40,21 +40,21 @@ ACarPawn::ACarPawn()
 }
 
 
-ACarPawn::~ACarPawn()
-{
-	// Ensure the socket exists
-	if (Socket)
-	{
-		// Close the socket
-		Socket->Close();
-
-		// Free the memory associated with the socket
-		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
-
-		// Nullify the pointer for safety
-		Socket = nullptr;
-	}
-}
+//ACarPawn::~ACarPawn()
+//{
+//	// Ensure the socket exists
+//	if (Socket)
+//	{
+//		// Close the socket
+//		Socket->Close();
+//
+//		// Free the memory associated with the socket
+//		ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->DestroySocket(Socket);
+//
+//		// Nullify the pointer for safety
+//		Socket = nullptr;
+//	}
+//}
 
 bool ACarPawn::SafeSocketSend() {
 	uint8 baseVal = 67;
