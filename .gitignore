@@ -1,9 +1,11 @@
 # Unreal Engine 5 specific
 ###################
+Binaries/
 DerivedDataCache/
 Saved/
 Intermediate/
- Content/__ExternalObjects__/
+Content/__ExternalObjects__/
+Content/__ExternalActors__/
 *.opensdf
 *.sdf
 *.suo

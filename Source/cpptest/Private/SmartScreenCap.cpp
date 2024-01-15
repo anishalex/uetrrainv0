@@ -9,9 +9,16 @@
 #include "IImageWrapperModule.h"
 #include "ImageUtils.h"
 
+#include "Sockets.h"
+#include "SocketSubsystem.h"
+#include "TimerManager.h"
+#include "Interfaces/IPv4/IPv4Address.h"
+
+#include <stdlib.h>
+#include <time.h>
 #include <fstream>
 
-
+DEFINE_LOG_CATEGORY(LogSmartCam);
 
 // Sets default values
 ASmartScreenCap::ASmartScreenCap()
@@ -46,6 +53,34 @@ ASmartScreenCap::ASmartScreenCap()
 
 	sceneCaptureColor = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("SceneCaptureColor"));
 	sceneCaptureColor->SetupAttachment(OurCameraColor);
+
+
+	DataToSend.Reserve(ImageWidth * ImageHeight * NumChannels);
+	//Anish: Lets also set up the network components here
+		// Create the TCP socket
+	Socket = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateSocket(NAME_Stream, TEXT("default"), false);
+	FIPv4Address IP(127, 0, 0, 1); // Localhost
+	int32 Port = 7766;
+	TSharedRef<FInternetAddr> Addr = ISocketSubsystem::Get(PLATFORM_SOCKETSUBSYSTEM)->CreateInternetAddr();
+	Addr->SetIp(IP.Value);
+	Addr->SetPort(Port);
+
+	bool connected = Socket->Connect(*Addr);
+	if (!connected)
+	{
+		// Handle connection error
+	}
+	else {
+		//GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::sendSocketMessage, 1.0f, false);
+		UE_LOG(LogSmartCam, Warning, TEXT("Vehicle Init"));
+		uint8 baseVal = 65;
+		
+		//DataToSend.Append((uint8*)&baseVal, sizeof(baseVal));
+
+		//int32 BytesSent = 0;
+		//bool successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
+	}
+
 }
 
 
@@ -254,8 +289,92 @@ void ASmartScreenCap::BeginPlay()
 	sprintf(targetBuffer, "%.3f", quaternion.W);
 	strRotW = std::string(targetBuffer);
 
+	//Anish: We'll set the timer callback here at the start
+	//GetWorldTimerManager().SetTimer(TimerHandle, this, &ACarPawn::FrameSender, 1.0f, true);
 	
 }
+
+
+
+
+bool ASmartScreenCap::SafeSocketSend() {
+	uint8 baseVal = 67;
+	
+	int32 BytesSent = 0;
+	bool successful;
+	//UE_LOG(LogSmartCam, Warning, TEXT("SafeSocketSend called"));
+	if (Socket)
+	{
+
+		/*
+		for (int32 i = 0; i < ImageWidth * ImageHeight * NumChannels; ++i) {
+			uint8 RandomValue = FMath::RandRange(0, 255);
+			DataToSend.Add(RandomValue);
+		}
+		*/
+		DataToSend.Empty(ImageWidth * ImageHeight * NumChannels);
+		auto RenderTargetResource = renderTargetColor->GameThread_GetRenderTargetResource();
+
+		if (RenderTargetResource)
+		{
+			TArray<FColor> buffer8;
+			RenderTargetResource->ReadPixels(buffer8);
+
+
+			UE_LOG(LogSmartCam, Warning, TEXT("buffer is %d bytes"), buffer8.Num()*3);
+
+			for (const FColor& Pixel : buffer8)
+			{
+				// Append R, G, B components
+				DataToSend.Add(Pixel.R);
+				DataToSend.Add(Pixel.G);
+				DataToSend.Add(Pixel.B);
+				// Ignoring the Alpha component
+			}
+		}
+
+		/*
+		
+
+		*/
+		ESocketConnectionState ConnectionState = Socket->GetConnectionState();
+		switch (ConnectionState)
+		{
+		case SCS_NotConnected:
+			UE_LOG(LogSmartCam, Warning, TEXT("smartCam: Socket not connected"));
+			return false;
+		case SCS_Connected:
+			//DataToSend.Append((uint8*)&baseVal, sizeof(baseVal));
+			UE_LOG(LogSmartCam, Warning, TEXT("DTS is %d bytes"), DataToSend.Num());
+			successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
+			if (successful) {
+				return true;
+			}
+			else {
+				UE_LOG(LogSmartCam, Warning, TEXT("Error while sending"));
+				return false;
+			}
+
+		case SCS_ConnectionError:
+			UE_LOG(LogSmartCam, Warning, TEXT("Socket Connection Error"));
+			return false;
+
+		default:
+			UE_LOG(LogSmartCam, Warning, TEXT("Unknown socket state"));
+			return false;
+		}
+
+		//empty out the imagearray so its ready for the next round
+		
+	}
+	else {
+		UE_LOG(LogSmartCam, Warning, TEXT("SafeSocketSend couldn't get the socket"));
+		return false;
+	}
+
+
+}
+
 
 // Called every frame
 void ASmartScreenCap::Tick(float DeltaTime)
@@ -264,15 +383,15 @@ void ASmartScreenCap::Tick(float DeltaTime)
 
 	sCounter = std::to_string(counterImage);
 	sCounter = std::string(6 - sCounter.length(), '0') + sCounter;
-	
+	//UE_LOG(LogSmartCam, Warning, TEXT("Tick"));
 
-	if (counterImage > 0)
-	{
-		
-		SaveTextureDepthmap();
-		SaveTextureColor();
-	}
-
+	//if (counterImage > 0)
+	//{
+	//	
+	//	SaveTextureDepthmap();
+	//	SaveTextureColor();
+	//}
+	ASmartScreenCap::SafeSocketSend();
 	counterImage++;
 }
 
@@ -320,9 +439,9 @@ void ASmartScreenCap::SaveTextureColor()
 
 
 		int32 numPixels = buffer8.Num();
-		UE_LOG(LogVehicleData, Warning, TEXT("Number of Pixels: %d"), numPixels);
+		UE_LOG(LogSmartCam, Warning, TEXT("Number of Pixels: %d"), numPixels);
 
-		UE_LOG(LogVehicleData, Warning, TEXT("%s"), *fileFName );
+		UE_LOG(LogSmartCam, Warning, TEXT("%s"), *fileFName );
 		targetFileColor.write(reinterpret_cast<char*>(buffer8.GetData()), buffer8.Num() * sizeof(FColor));
 		targetFileColor.close();
 	}
@@ -351,12 +470,12 @@ void ASmartScreenCap::SaveTextureColor()
 			FString CounterString = FString(UTF8_TO_TCHAR(sCounter.c_str()));
 
 			// Create the filename
-			FString FileName = FString::Printf(TEXT("Screenshot%s.png"), *CounterString);
+			FString FileName = FString::Printf(TEXT("view%s.png"), *CounterString);
 			FString FilePath = FPaths::Combine(TEXT("C:/temp/delete/scrap/"), FileName);
 
 			FFileHelper::SaveArrayToFile(PNGData, *FilePath);
 
-			UE_LOG(LogVehicleData, Log, TEXT("Saved PNG to %s"), *FilePath);
+			UE_LOG(LogSmartCam, Log, TEXT("Saved PNG to %s"), *FilePath);
 		}
 	}
 }

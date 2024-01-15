@@ -14,7 +14,7 @@
 #include "GameFramework/Actor.h"
 #include "SmartScreenCap.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogVehicleData, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogSmartCam, Log, All);
 
 
 UCLASS()
@@ -25,6 +25,15 @@ class CPPTEST_API ASmartScreenCap : public AActor
 public:	
 	// Sets default values for this actor's properties
 	ASmartScreenCap();
+	FSocket* Socket; // Define the socket variable
+	FTimerHandle TimerHandle;
+	//Anish: I'll reserve space for the image frame here
+	const int32 ImageWidth = 1024;
+	const int32 ImageHeight = 1024;
+	const int32 NumChannels = 3;
+
+	TArray<uint8> DataToSend;
+	bool SafeSocketSend();
 
 protected:
 
