@@ -37,11 +37,12 @@ server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 # Bind and listen
 server_socket.bind((TCP_IP, TCP_PORT))
+print(f'About to listen on -> {TCP_IP}:{TCP_PORT}')
 server_socket.listen(1)
 
 # Accept a connection
 conn, addr = server_socket.accept()
-print('Connection address:', addr)
+print('Connection from:', addr)
 
 while True:
     # Receive data

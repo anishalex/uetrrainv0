@@ -348,6 +348,7 @@ bool ASmartScreenCap::SafeSocketSend() {
 			UE_LOG(LogSmartCam, Warning, TEXT("DTS is %d bytes"), DataToSend.Num());
 			successful = Socket->Send(DataToSend.GetData(), DataToSend.Num(), BytesSent);
 			if (successful) {
+				UE_LOG(LogSmartCam, Warning, TEXT("Data sent"));
 				return true;
 			}
 			else {
